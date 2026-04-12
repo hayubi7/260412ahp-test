@@ -2,32 +2,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
     const balls = document.querySelectorAll('.ball');
     const historyList = document.getElementById('history-list');
-    const themeToggle = document.getElementById('theme-toggle');
+    const themeCheckbox = document.getElementById('theme-checkbox');
     const body = document.body;
 
     const WHITE_BALL_MAX = 69;
     const POWER_BALL_MAX = 26;
     const BALL_COUNT = 5;
 
-    // Theme Toggle Logic
-    themeToggle.addEventListener('click', () => {
-        if (body.classList.contains('dark-mode')) {
+    function applyTheme(isLight) {
+        if (isLight) {
             body.classList.replace('dark-mode', 'light-mode');
-            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            localStorage.setItem('theme', 'light');
+            themeCheckbox.checked = true;
         } else {
             body.classList.replace('light-mode', 'dark-mode');
-            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
-            localStorage.setItem('theme', 'dark');
+            themeCheckbox.checked = false;
         }
-    });
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    }
 
     // Check Local Storage for Theme
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-        body.classList.replace('dark-mode', 'light-mode');
-        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-    }
+    applyTheme(savedTheme === 'light');
+
+    // Theme Toggle Logic
+    themeCheckbox.addEventListener('change', () => {
+        applyTheme(themeCheckbox.checked);
+    });
 
     function getRandomNumbers(max, count) {
         const numbers = new Set();
