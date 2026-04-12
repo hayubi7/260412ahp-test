@@ -1,12 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
-    const ballContainer = document.getElementById('ball-container');
     const balls = document.querySelectorAll('.ball');
     const historyList = document.getElementById('history-list');
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
 
     const WHITE_BALL_MAX = 69;
     const POWER_BALL_MAX = 26;
     const BALL_COUNT = 5;
+
+    // Theme Toggle Logic
+    themeToggle.addEventListener('click', () => {
+        if (body.classList.contains('dark-mode')) {
+            body.classList.replace('dark-mode', 'light-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            localStorage.setItem('theme', 'light');
+        } else {
+            body.classList.replace('light-mode', 'dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            localStorage.setItem('theme', 'dark');
+        }
+    });
+
+    // Check Local Storage for Theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        body.classList.replace('dark-mode', 'light-mode');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    }
 
     function getRandomNumbers(max, count) {
         const numbers = new Set();
