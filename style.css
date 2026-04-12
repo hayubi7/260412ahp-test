@@ -218,64 +218,10 @@ body.dark-mode #generate-btn {
     transform: none;
 }
 
-.history-section {
-    margin-top: 50px;
-    text-align: left;
-    border-top: 1px solid var(--border-color);
-    padding-top: 20px;
-}
-
-.history-section h2 {
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    color: var(--gold-accent);
-}
-
-#history-list {
-    list-style: none;
-    padding: 0;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.history-item {
-    background: var(--history-item-bg);
-    margin-bottom: 10px;
-    padding: 10px 15px;
-    border-radius: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9rem;
-    transition: background-color 0.3s ease;
-}
-
-.history-nums {
-    display: flex;
-    gap: 8px;
-}
-
-.hist-ball {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 0.75rem;
-    font-weight: bold;
-    border: 1px solid #ddd;
-}
-
-.hist-white {
-    background: #fff;
-    color: #333;
-}
-
-.hist-power {
-    background: var(--power-ball-bg);
-    color: #fff;
-    border: 1px solid var(--gold-accent);
+.data-source {
+    margin-top: 24px;
+    font-size: 0.72rem;
+    opacity: 0.45;
 }
 
 @keyframes roll {

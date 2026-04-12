@@ -1,14 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     const generateBtn = document.getElementById('generate-btn');
-    const ballWrappers = document.querySelectorAll('.ball-wrapper');
-    const balls = document.querySelectorAll('.ball');
-    const ballCounts = document.querySelectorAll('.ball-count');
-    const historyList = document.getElementById('history-list');
+    const balls       = document.querySelectorAll('.ball');
+    const ballCounts  = document.querySelectorAll('.ball-count');
     const themeCheckbox = document.getElementById('theme-checkbox');
     const body = document.body;
 
-    const WHITE_BALL_MAX = 69;
-    const POWER_BALL_MAX = 26;
     const BALL_COUNT = 5;
 
     // ── 테마 ────────────────────────────────────────────────
@@ -25,51 +21,41 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(localStorage.getItem('theme') === 'light');
     themeCheckbox.addEventListener('change', () => applyTheme(themeCheckbox.checked));
 
-    // ── 빈도 추적 (localStorage 영속) ────────────────────────
-    function loadFreq(key, max) {
-        const saved = localStorage.getItem(key);
-        if (saved) return JSON.parse(saved);
-        const freq = {};
-        for (let i = 1; i <= max; i++) freq[i] = 0;
-        return freq;
-    }
+    // ── 실제 파워볼 역대 당첨 빈도 데이터 ────────────────────
+    // 출처: powerball-megamillions.com (2015년 현행 룰 적용 이후 누적)
+    const WHITE_FREQ = {
+         1:92,  2:97,  3:105,  4:91,  5:88,  6:104,  7:94,  8:91,  9:90, 10:90,
+        11:98, 12:102, 13:71, 14:87, 15:92, 16:103, 17:93, 18:100, 19:100, 20:99,
+        21:119, 22:89, 23:116, 24:94, 25:84, 26:78, 27:113, 28:117, 29:88, 30:94,
+        31:95, 32:113, 33:114, 34:82, 35:89, 36:110, 37:106, 38:89, 39:106, 40:99,
+        41:87, 42:92, 43:95, 44:103, 45:97, 46:78, 47:108, 48:85, 49:78, 50:95,
+        51:87, 52:105, 53:109, 54:95, 55:87, 56:95, 57:92, 58:92, 59:104, 60:90,
+        61:120, 62:110, 63:111, 64:115, 65:84, 66:98, 67:98, 68:95, 69:113
+    };
 
-    function saveFreq(key, freq) {
-        localStorage.setItem(key, JSON.stringify(freq));
-    }
-
-    let whiteFreq = loadFreq('whiteFreq', WHITE_BALL_MAX);
-    let powerFreq = loadFreq('powerFreq', POWER_BALL_MAX);
+    const POWER_FREQ = {
+         1:57,  2:51,  3:52,  4:64,  5:57,  6:51,  7:44,  8:45,  9:55, 10:47,
+        11:46, 12:44, 13:48, 14:61, 15:42, 16:39, 17:43, 18:59, 19:50, 20:58,
+        21:63, 22:45, 23:49, 24:62, 25:57, 26:51
+    };
 
     // ── 최소 빈도 우선 선택 ──────────────────────────────────
-    // 동점 구간에서는 랜덤 셔플로 다양성 확보
-    function pickLeastFrequent(freq, max, count) {
-        const entries = [];
-        for (let i = 1; i <= max; i++) entries.push({ n: i, c: freq[i] });
-
-        // 빈도 오름차순 정렬, 같은 빈도끼리는 랜덤
-        entries.sort((a, b) => a.c - b.c || Math.random() - 0.5);
-
+    // 동점 구간은 랜덤 셔플로 다양성 확보
+    function pickLeastFrequent(freq, count) {
+        const entries = Object.entries(freq)
+            .map(([n, c]) => ({ n: Number(n), c }))
+            .sort((a, b) => a.c - b.c || Math.random() - 0.5);
         return entries.slice(0, count).map(e => e.n).sort((a, b) => a - b);
     }
 
-    function pickOneLeastFrequent(freq, max) {
-        const entries = [];
-        for (let i = 1; i <= max; i++) entries.push({ n: i, c: freq[i] });
+    function pickOneLeastFrequent(freq) {
+        const entries = Object.entries(freq).map(([n, c]) => ({ n: Number(n), c }));
         const minC = Math.min(...entries.map(e => e.c));
         const pool = entries.filter(e => e.c === minC);
         return pool[Math.floor(Math.random() * pool.length)].n;
     }
 
-    // ── 빈도 업데이트 ────────────────────────────────────────
-    function updateFreq(whites, power) {
-        whites.forEach(n => { whiteFreq[n] = (whiteFreq[n] || 0) + 1; });
-        powerFreq[power] = (powerFreq[power] || 0) + 1;
-        saveFreq('whiteFreq', whiteFreq);
-        saveFreq('powerFreq', powerFreq);
-    }
-
-    // ── 애니메이션 & 번호 생성 ───────────────────────────────
+    // ── 번호 생성 & 애니메이션 ────────────────────────────────
     async function generateNumbers() {
         generateBtn.disabled = true;
 
@@ -79,12 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ball.classList.add('rolling');
         });
 
-        const whiteBalls = pickLeastFrequent(whiteFreq, WHITE_BALL_MAX, BALL_COUNT);
-        const powerBall  = pickOneLeastFrequent(powerFreq, POWER_BALL_MAX);
+        const whiteBalls = pickLeastFrequent(WHITE_FREQ, BALL_COUNT);
+        const powerBall  = pickOneLeastFrequent(POWER_FREQ);
         const allNumbers = [...whiteBalls, powerBall];
-
-        // 빈도 업데이트 (표시 전에 미리 계산)
-        updateFreq(whiteBalls, powerBall);
 
         for (let i = 0; i < balls.length; i++) {
             await new Promise(resolve => setTimeout(resolve, 600));
@@ -92,43 +75,15 @@ document.addEventListener('DOMContentLoaded', () => {
             balls[i].classList.remove('rolling');
             balls[i].textContent = allNumbers[i];
 
-            // 해당 번호의 누적 횟수 표시
-            const ispower = i === BALL_COUNT;
-            const cnt = ispower ? powerFreq[allNumbers[i]] : whiteFreq[allNumbers[i]];
+            const isPower = i === BALL_COUNT;
+            const cnt = isPower ? POWER_FREQ[allNumbers[i]] : WHITE_FREQ[allNumbers[i]];
             ballCounts[i].textContent = `${cnt}회`;
 
             balls[i].classList.add('pop');
             setTimeout(() => balls[i].classList.remove('pop'), 300);
         }
 
-        addToHistory(whiteBalls, powerBall);
         generateBtn.disabled = false;
-    }
-
-    // ── 히스토리 ─────────────────────────────────────────────
-    function addToHistory(whites, power) {
-        const now = new Date();
-        const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-        const li = document.createElement('li');
-        li.className = 'history-item';
-
-        const whiteBallsHtml = whites.map(n =>
-            `<div class="hist-ball hist-white">${n}</div>`
-        ).join('');
-
-        li.innerHTML = `
-            <div class="history-nums">
-                ${whiteBallsHtml}
-                <div class="hist-ball hist-power">${power}</div>
-            </div>
-            <span class="history-time">${timeStr}</span>
-        `;
-
-        historyList.prepend(li);
-        if (historyList.children.length > 10) {
-            historyList.removeChild(historyList.lastChild);
-        }
     }
 
     generateBtn.addEventListener('click', generateNumbers);
