@@ -52,22 +52,44 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
-    // ── Yahoo Finance API로 실시간 주가 가져오기 ─────────────
+    // ── 실시간 주가 가져오기 ─────────────────────────────────
+    // CORS 프록시를 순차 시도해 Yahoo Finance 데이터를 가져옴
+    const YAHOO_BASE = symbols =>
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
+
+    const PROXIES = [
+        url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    ];
+
+    async function fetchWithFallback(targetUrl) {
+        // 직접 시도
+        try {
+            const res = await fetch(targetUrl);
+            if (res.ok) return res.json();
+        } catch (_) { /* CORS 차단 → 프록시로 */ }
+
+        // 프록시 순차 시도
+        for (const makeProxy of PROXIES) {
+            try {
+                const res = await fetch(makeProxy(targetUrl));
+                if (res.ok) return res.json();
+            } catch (_) { continue; }
+        }
+        throw new Error('모든 연결 경로 실패');
+    }
+
     async function fetchPrices() {
         refreshBtn.disabled = true;
         refreshBtn.querySelector('i').classList.add('spinning');
         errorMsg.style.display = 'none';
 
         const symbols = STOCKS.map(s => s.ticker).join(',');
-        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
 
         try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
+            const data = await fetchWithFallback(YAHOO_BASE(symbols));
             const results = data?.quoteResponse?.result ?? [];
-
-            if (results.length === 0) throw new Error('데이터를 받지 못했습니다.');
+            if (results.length === 0) throw new Error('빈 응답');
 
             results.forEach(q => {
                 const row = document.getElementById(`row-${q.symbol}`);
@@ -77,25 +99,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const change = q.regularMarketChange;
                 const pct    = q.regularMarketChangePercent;
 
-                const priceCell  = row.cells[3];
-                const changeCell = row.cells[4];
-
-                priceCell.textContent = `$${price.toFixed(2)}`;
-                priceCell.classList.remove('price-loading');
+                row.cells[3].textContent = `$${price.toFixed(2)}`;
+                row.cells[3].classList.remove('price-loading');
 
                 const sign = change >= 0 ? '+' : '';
                 const cls  = change > 0 ? 'change-up' : change < 0 ? 'change-down' : 'change-flat';
-                changeCell.innerHTML = `<span class="${cls}">${sign}${change.toFixed(2)} (${sign}${pct.toFixed(2)}%)</span>`;
+                row.cells[4].innerHTML = `<span class="${cls}">${sign}${change.toFixed(2)} (${sign}${pct.toFixed(2)}%)</span>`;
             });
 
-            const now = new Date();
-            lastUpdated.textContent = `업데이트: ${now.toLocaleTimeString('ko-KR')}`;
+            lastUpdated.textContent = `업데이트: ${new Date().toLocaleTimeString('ko-KR')}`;
 
         } catch (err) {
-            errorMsg.textContent = `⚠️ 주가를 불러오지 못했습니다: ${err.message}. Yahoo Finance CORS 정책으로 인해 로컬 환경에서는 작동하지 않을 수 있습니다.`;
+            errorMsg.textContent = `⚠️ 주가 로드 실패: ${err.message}`;
             errorMsg.style.display = 'block';
-
-            // 에러 시 스켈레톤 → '-' 로 대체
             STOCKS.forEach(s => {
                 const row = document.getElementById(`row-${s.ticker}`);
                 if (!row) return;
