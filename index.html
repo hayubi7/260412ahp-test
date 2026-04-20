@@ -3,55 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>슈퍼볼(Superball) 번호 생성기</title>
+    <title>주식 포트폴리오 트래커</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="dark-mode">
+
     <div class="theme-toggle-wrap">
-        <i class="fas fa-sun toggle-icon" id="icon-sun"></i>
+        <i class="fas fa-sun toggle-icon"></i>
         <label class="switch">
             <input type="checkbox" id="theme-checkbox">
             <span class="slider"></span>
         </label>
-        <i class="fas fa-moon toggle-icon" id="icon-moon"></i>
+        <i class="fas fa-moon toggle-icon"></i>
     </div>
+
     <div class="container">
-        <h1>슈퍼볼 번호 생성기</h1>
-        <p class="subtitle">행운의 5개 번호와 1개 파워볼 번호를 확인하세요!</p>
-        
-        <div id="ball-container" class="ball-container">
-            <div class="ball-wrapper">
-                <div class="ball white-ball">?</div>
-                <span class="ball-count">-</span>
+        <div class="header">
+            <div class="header-title">
+                <i class="fas fa-chart-line"></i>
+                <h1>주식 포트폴리오</h1>
             </div>
-            <div class="ball-wrapper">
-                <div class="ball white-ball">?</div>
-                <span class="ball-count">-</span>
-            </div>
-            <div class="ball-wrapper">
-                <div class="ball white-ball">?</div>
-                <span class="ball-count">-</span>
-            </div>
-            <div class="ball-wrapper">
-                <div class="ball white-ball">?</div>
-                <span class="ball-count">-</span>
-            </div>
-            <div class="ball-wrapper">
-                <div class="ball white-ball">?</div>
-                <span class="ball-count">-</span>
-            </div>
-            <div class="ball-wrapper">
-                <div class="ball power-ball">?</div>
-                <span class="ball-count">-</span>
+            <div class="header-actions">
+                <span id="last-updated">-</span>
+                <button id="refresh-btn"><i class="fas fa-sync-alt"></i> 새로고침</button>
             </div>
         </div>
 
-        <button id="generate-btn">번호 생성하기</button>
+        <div id="error-msg" class="error-msg" style="display:none"></div>
 
-        <p class="data-source">* 실제 파워볼 역대 당첨 데이터 기반 (2015년 현행 룰 적용 이후)</p>
+        <div class="table-wrap">
+            <table id="stock-table">
+                <thead>
+                    <tr>
+                        <th>티커</th>
+                        <th>종목명</th>
+                        <th>섹터</th>
+                        <th>현재주가</th>
+                        <th>등락</th>
+                        <th>시가총액</th>
+                        <th>P/E</th>
+                        <th>Fwd P/E</th>
+                        <th>EPS</th>
+                        <th>2026E 성장</th>
+                        <th>할인율</th>
+                        <th>종합점수</th>
+                    </tr>
+                </thead>
+                <tbody id="stock-tbody"></tbody>
+            </table>
+        </div>
+
+        <p class="footnote">* 기준 데이터: 2026-03-24 분석 | 현재주가: Yahoo Finance 실시간</p>
     </div>
+
     <script src="main.js"></script>
 </body>
 </html>

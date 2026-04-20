@@ -1,90 +1,120 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const generateBtn = document.getElementById('generate-btn');
-    const balls       = document.querySelectorAll('.ball');
-    const ballCounts  = document.querySelectorAll('.ball-count');
     const themeCheckbox = document.getElementById('theme-checkbox');
-    const body = document.body;
-
-    const BALL_COUNT = 5;
+    const body          = document.body;
+    const refreshBtn    = document.getElementById('refresh-btn');
+    const lastUpdated   = document.getElementById('last-updated');
+    const tbody         = document.getElementById('stock-tbody');
+    const errorMsg      = document.getElementById('error-msg');
 
     // ── 테마 ────────────────────────────────────────────────
     function applyTheme(isLight) {
-        if (isLight) {
-            body.classList.replace('dark-mode', 'light-mode');
-            themeCheckbox.checked = true;
-        } else {
-            body.classList.replace('light-mode', 'dark-mode');
-            themeCheckbox.checked = false;
-        }
+        body.classList.toggle('light-mode', isLight);
+        body.classList.toggle('dark-mode', !isLight);
+        themeCheckbox.checked = isLight;
         localStorage.setItem('theme', isLight ? 'light' : 'dark');
     }
     applyTheme(localStorage.getItem('theme') === 'light');
     themeCheckbox.addEventListener('change', () => applyTheme(themeCheckbox.checked));
 
-    // ── 실제 파워볼 역대 당첨 빈도 데이터 ────────────────────
-    // 출처: powerball-megamillions.com (2015년 현행 룰 적용 이후 누적)
-    const WHITE_FREQ = {
-         1:92,  2:97,  3:105,  4:91,  5:88,  6:104,  7:94,  8:91,  9:90, 10:90,
-        11:98, 12:102, 13:71, 14:87, 15:92, 16:103, 17:93, 18:100, 19:100, 20:99,
-        21:119, 22:89, 23:116, 24:94, 25:84, 26:78, 27:113, 28:117, 29:88, 30:94,
-        31:95, 32:113, 33:114, 34:82, 35:89, 36:110, 37:106, 38:89, 39:106, 40:99,
-        41:87, 42:92, 43:95, 44:103, 45:97, 46:78, 47:108, 48:85, 49:78, 50:95,
-        51:87, 52:105, 53:109, 54:95, 55:87, 56:95, 57:92, 58:92, 59:104, 60:90,
-        61:120, 62:110, 63:111, 64:115, 65:84, 66:98, 67:98, 68:95, 69:113
-    };
+    // ── 포트폴리오 데이터 (2026-03-24 분석 기준) ─────────────
+    const STOCKS = [
+        { ticker:'APA',  name:'APA Corp',            sector:'Energy',     mktCap:'~12.6B', pe:'8.6',   fwdPe:'9.6',  eps:'3.99', growth:'15.0%', discount:'35.0%',       score:'5.0/4.5/4.7=14.2' },
+        { ticker:'GEHC', name:'GE HealthCare',        sector:'HealthCare', mktCap:'~31.9B', pe:'15.6',  fwdPe:'15.3', eps:'4.55', growth:'10.0%', discount:'31.0%',       score:'4.5/4.5/4.8=13.8' },
+        { ticker:'VLTO', name:'Veralto Corp',         sector:'Industrials',mktCap:'~22.2B', pe:'23.87', fwdPe:'21.4', eps:'3.76', growth:'12.5%', discount:'25.0%',       score:'4.0/4.5/5.0=13.5' },
+        { ticker:'NRG',  name:'NRG Energy',           sector:'Utilities',  mktCap:'~28.3B', pe:'18.4',  fwdPe:'16.8', eps:'4.01', growth:'13.5%', discount:'30.9%',       score:'4.2/4.4/4.5=13.1' },
+        { ticker:'ALB',  name:'Albemarle',            sector:'Materials',  mktCap:'~11.8B', pe:'N/A',   fwdPe:'13.5', eps:'N/A',  growth:'15.0%', discount:'70.0%(P/B)',  score:'5.0/3.5/4.2=12.7' },
+        { ticker:'CFG',  name:'Citizens Financial',   sector:'Financials', mktCap:'~25.2B', pe:'9.5',   fwdPe:'8.8',  eps:'3.21', growth:'11.0%', discount:'50.0%(P/B)',  score:'4.5/4.0/3.9=12.4' },
+        { ticker:'SW',   name:'Smurfit Westrock',     sector:'Materials',  mktCap:'~26.8B', pe:'10.2',  fwdPe:'9.5',  eps:'2.35', growth:'14.0%', discount:'28.0%',       score:'4.2/4.0/4.0=12.2' },
+        { ticker:'BALL', name:'Ball Corp',            sector:'Materials',  mktCap:'~14.2B', pe:'15.1',  fwdPe:'14.2', eps:'2.98', growth:'13.5%', discount:'25.0%',       score:'4.0/3.8/4.1=11.9' },
+        { ticker:'FITB', name:'Fifth Third',          sector:'Financials', mktCap:'~31.5B', pe:'10.3',  fwdPe:'9.8',  eps:'3.12', growth:'10.5%', discount:'30.0%',       score:'4.0/3.8/3.8=11.6' },
+        { ticker:'PODD', name:'Insulet Corp',         sector:'HealthCare', mktCap:'~14.8B', pe:'20',    fwdPe:'18.5', eps:'4.12', growth:'20.0%', discount:'35.0%',       score:'3.5/4.2/3.6=11.3' },
+    ];
 
-    const POWER_FREQ = {
-         1:57,  2:51,  3:52,  4:64,  5:57,  6:51,  7:44,  8:45,  9:55, 10:47,
-        11:46, 12:44, 13:48, 14:61, 15:42, 16:39, 17:43, 18:59, 19:50, 20:58,
-        21:63, 22:45, 23:49, 24:62, 25:57, 26:51
-    };
+    const sectorClass = s => 'sector-' + s.replace(/\s/g, '');
 
-    // ── 최소 빈도 우선 선택 ──────────────────────────────────
-    // 동점 구간은 랜덤 셔플로 다양성 확보
-    function pickLeastFrequent(freq, count) {
-        const entries = Object.entries(freq)
-            .map(([n, c]) => ({ n: Number(n), c }))
-            .sort((a, b) => a.c - b.c || Math.random() - 0.5);
-        return entries.slice(0, count).map(e => e.n).sort((a, b) => a - b);
+    // ── 초기 테이블 렌더 (스켈레톤) ──────────────────────────
+    function renderSkeleton() {
+        tbody.innerHTML = STOCKS.map(s => `
+            <tr id="row-${s.ticker}">
+                <td class="ticker-cell">${s.ticker}</td>
+                <td>${s.name}</td>
+                <td><span class="sector-badge ${sectorClass(s.sector)}">${s.sector}</span></td>
+                <td class="price-cell price-loading"><span class="skeleton"></span></td>
+                <td><span class="skeleton"></span></td>
+                <td>${s.mktCap}</td>
+                <td>${s.pe}</td>
+                <td>${s.fwdPe}</td>
+                <td>${s.eps}</td>
+                <td>${s.growth}</td>
+                <td>${s.discount}</td>
+                <td class="score-cell">${s.score}</td>
+            </tr>
+        `).join('');
     }
 
-    function pickOneLeastFrequent(freq) {
-        const entries = Object.entries(freq).map(([n, c]) => ({ n: Number(n), c }));
-        const minC = Math.min(...entries.map(e => e.c));
-        const pool = entries.filter(e => e.c === minC);
-        return pool[Math.floor(Math.random() * pool.length)].n;
-    }
+    // ── Yahoo Finance API로 실시간 주가 가져오기 ─────────────
+    async function fetchPrices() {
+        refreshBtn.disabled = true;
+        refreshBtn.querySelector('i').classList.add('spinning');
+        errorMsg.style.display = 'none';
 
-    // ── 번호 생성 & 애니메이션 ────────────────────────────────
-    async function generateNumbers() {
-        generateBtn.disabled = true;
+        const symbols = STOCKS.map(s => s.ticker).join(',');
+        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
 
-        balls.forEach((ball, i) => {
-            ball.textContent = '?';
-            ballCounts[i].textContent = '-';
-            ball.classList.add('rolling');
-        });
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            const results = data?.quoteResponse?.result ?? [];
 
-        const whiteBalls = pickLeastFrequent(WHITE_FREQ, BALL_COUNT);
-        const powerBall  = pickOneLeastFrequent(POWER_FREQ);
-        const allNumbers = [...whiteBalls, powerBall];
+            if (results.length === 0) throw new Error('데이터를 받지 못했습니다.');
 
-        for (let i = 0; i < balls.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, 600));
+            results.forEach(q => {
+                const row = document.getElementById(`row-${q.symbol}`);
+                if (!row) return;
 
-            balls[i].classList.remove('rolling');
-            balls[i].textContent = allNumbers[i];
+                const price  = q.regularMarketPrice;
+                const change = q.regularMarketChange;
+                const pct    = q.regularMarketChangePercent;
 
-            const isPower = i === BALL_COUNT;
-            const cnt = isPower ? POWER_FREQ[allNumbers[i]] : WHITE_FREQ[allNumbers[i]];
-            ballCounts[i].textContent = `${cnt}회`;
+                const priceCell  = row.cells[3];
+                const changeCell = row.cells[4];
 
-            balls[i].classList.add('pop');
-            setTimeout(() => balls[i].classList.remove('pop'), 300);
+                priceCell.textContent = `$${price.toFixed(2)}`;
+                priceCell.classList.remove('price-loading');
+
+                const sign = change >= 0 ? '+' : '';
+                const cls  = change > 0 ? 'change-up' : change < 0 ? 'change-down' : 'change-flat';
+                changeCell.innerHTML = `<span class="${cls}">${sign}${change.toFixed(2)} (${sign}${pct.toFixed(2)}%)</span>`;
+            });
+
+            const now = new Date();
+            lastUpdated.textContent = `업데이트: ${now.toLocaleTimeString('ko-KR')}`;
+
+        } catch (err) {
+            errorMsg.textContent = `⚠️ 주가를 불러오지 못했습니다: ${err.message}. Yahoo Finance CORS 정책으로 인해 로컬 환경에서는 작동하지 않을 수 있습니다.`;
+            errorMsg.style.display = 'block';
+
+            // 에러 시 스켈레톤 → '-' 로 대체
+            STOCKS.forEach(s => {
+                const row = document.getElementById(`row-${s.ticker}`);
+                if (!row) return;
+                row.cells[3].textContent = '-';
+                row.cells[3].classList.remove('price-loading');
+                row.cells[4].textContent = '-';
+            });
+        } finally {
+            refreshBtn.disabled = false;
+            refreshBtn.querySelector('i').classList.remove('spinning');
         }
-
-        generateBtn.disabled = false;
     }
 
-    generateBtn.addEventListener('click', generateNumbers);
+    // ── 초기화 ───────────────────────────────────────────────
+    renderSkeleton();
+    fetchPrices();
+
+    // 60초 자동 새로고침
+    setInterval(fetchPrices, 60_000);
+
+    refreshBtn.addEventListener('click', fetchPrices);
 });
